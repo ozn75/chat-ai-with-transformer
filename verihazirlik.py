@@ -14,13 +14,11 @@ class Verihazirlik:
 
         self.current_id = len(special_tokens)
         self.pad_id = self.word2id["<PAD>"]
-
-        # 🔥 max uzunluk (OOM çözümü)
-        self.MAX_LEN = 64
+        self.max_len = 0
 
     # 📂 dosya okuma
     def dosyaokuma(self):
-        path = Path("datalar/aiveri.txt")
+        path = Path("datalar/aiveri2.txt")
         text = path.read_text(encoding="utf-8")
 
         # bloklara ayır
@@ -36,7 +34,12 @@ class Verihazirlik:
 
             tum_cumleler.append(cumleler)
 
-        print(tum_cumleler[0])
+            # max_len güncelle
+            for sentence in cumleler:
+                tokens = sentence.strip().lower().split(" ")
+                self.max_len = max(self.max_len, len(tokens) + 2)  # BOS + EOS
+
+        #print(tum_cumleler[0])
         return tum_cumleler
 
     # 🧠 tokenize + pad
@@ -56,22 +59,24 @@ class Verihazirlik:
 
         # 2️⃣ tokenize + pad
         for cumle in cumleler:
+            #print(cumle)
+            
             for sentence in cumle:
 
-                tokens = sentence.split()
+                tokens = sentence.strip().lower().split(" ")
+                #print("token len:",len(tokens))
 
                 ids = [self.word2id.get(k, self.word2id["<UNK>"]) for k in tokens]
 
                 # BOS + EOS ekle
                 ids = [self.word2id["<BOS>"]] + ids + [self.word2id["<EOS>"]]
-
-                # 🔥 kes (OOM engelle)
-                ids = ids[:self.MAX_LEN]
+                #print("idslen: ",len(ids))
 
                 # 🔥 pad
-                ids = ids + [self.pad_id] * (self.MAX_LEN - len(ids))
+                ids = ids + [self.pad_id] * (self.max_len - len(ids))
 
                 self.input_tensor.append(ids)
+            #print(self.input_tensor[0])
 
         return torch.tensor(self.input_tensor, dtype=torch.long), self.word2id, self.id2word
 
